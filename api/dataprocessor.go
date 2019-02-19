@@ -258,6 +258,8 @@ LOOP:
 		}
 		wg.Add(1)
 		go func(req models.Req) {
+			tagEnrichment := s.MetricIndex.EnrichWithMetaTags(req.MKey)
+
 			rCtx, span := tracing.NewSpan(rCtx, s.Tracer, "getTargetsLocal")
 			req.Trace(span)
 			pre := time.Now()
@@ -268,7 +270,7 @@ LOOP:
 				responses <- getTargetsResp{nil, err}
 			} else {
 				getTargetDuration.Value(time.Now().Sub(pre))
-				responses <- getTargetsResp{[]models.Series{{
+				res := models.Series{
 					Target:       req.Target, // always simply the metric name from index
 					Datapoints:   points,
 					Interval:     interval,
@@ -277,7 +279,10 @@ LOOP:
 					QueryTo:      req.To,
 					QueryCons:    req.ConsReq,
 					Consolidator: req.Consolidator,
-				}}, nil}
+				}
+				res.SetTags()
+				res.AddTags(tagEnrichment.GetTags())
+				responses <- getTargetsResp{[]models.Series{res}, nil}
 			}
 			wg.Done()
 			// pop an item of our limiter so that other requests can be processed.

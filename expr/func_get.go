@@ -22,11 +22,5 @@ func (s FuncGet) Context(context Context) Context {
 }
 
 func (s FuncGet) Exec(cache map[Req][]models.Series) ([]models.Series, error) {
-	series := cache[s.req]
-
-	for k := range series {
-		series[k].SetTags()
-	}
-
-	return series, nil
+	return cache[s.req], nil
 }

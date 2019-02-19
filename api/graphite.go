@@ -694,6 +694,7 @@ func (s *Server) executePlan(ctx context.Context, orgId uint32, plan expr.Plan) 
 
 	preRun := time.Now()
 	out, err = plan.Run(data)
+
 	planRunDuration.Value(time.Since(preRun))
 	return out, err
 }
@@ -1100,7 +1101,7 @@ func (s *Server) showPlan(ctx *middleware.Context, request models.GraphiteRender
 }
 
 func (s *Server) getMetaTagRecord(ctx *middleware.Context) {
-	metaTagRecords := s.MetricIndex.MetaTagRecordList(ctx.OrgId)
+	metaTagRecords := s.MetricIndex.MetaTagRecords(ctx.OrgId)
 	response.Write(ctx, response.NewJson(200, metaTagRecords, ""))
 }
 
