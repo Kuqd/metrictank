@@ -102,7 +102,7 @@ type MemoryIndex interface {
 	LoadPartition(int32, []schema.MetricDefinition) int
 	UpdateArchive(idx.Archive)
 	add(*schema.MetricDefinition) idx.Archive
-	idsByTagQuery(uint32, TagQuery) IdSet
+	idsByTagQuery(uint32, *TagQuery) IdSet
 	PurgeFindCache()
 }
 
@@ -247,8 +247,8 @@ type UnpartitionedMemoryIdx struct {
 	tagEnrichmentQ chan *tagEnrichment
 }
 
-func New() *MemoryIdx {
-	return &MemoryIdx{
+func NewUnpartitionedMemoryIdx() *UnpartitionedMemoryIdx {
+	return &UnpartitionedMemoryIdx{
 		defById:        make(map[schema.MKey]*idx.Archive),
 		defByTagSet:    make(defByTagSet),
 		tree:           make(map[uint32]*Tree),
@@ -354,7 +354,7 @@ func (m *UnpartitionedMemoryIdx) UpdateArchive(archive idx.Archive) {
 	*(m.defById[archive.Id]) = archive
 }
 
-func (m *MemoryIdx) MetaTagRecordUpsert(orgId uint32, rawRecord idx.MetaTagRecord) (*idx.MetaTagRecord, error) {
+func (m *UnpartitionedMemoryIdx) MetaTagRecordUpsert(orgId uint32, rawRecord idx.MetaTagRecord) (*idx.MetaTagRecord, error) {
 	if !TagSupport {
 		log.Warn("memory-idx: received tag query, but tag support is disabled")
 		return nil, nil
@@ -410,7 +410,7 @@ func (m *MemoryIdx) MetaTagRecordUpsert(orgId uint32, rawRecord idx.MetaTagRecor
 	}
 }
 
-func (m *MemoryIdx) MetaTagRecordList(orgId uint32) []idx.MetaTagRecord {
+func (m *UnpartitionedMemoryIdx) MetaTagRecordList(orgId uint32) []idx.MetaTagRecord {
 	builder := strings.Builder{}
 	res := make([]idx.MetaTagRecord, 0, len(m.metaTagRecords))
 
@@ -433,7 +433,7 @@ func (m *MemoryIdx) MetaTagRecordList(orgId uint32) []idx.MetaTagRecord {
 	return res
 }
 
-func (m *MemoryIdx) EnrichWithMetaTags(id schema.MKey) idx.TagEnrichment {
+func (m *UnpartitionedMemoryIdx) EnrichWithMetaTags(id schema.MKey) idx.TagEnrichment {
 	m.RLock()
 	def, ok := m.defById[id]
 	m.RUnlock()
@@ -446,15 +446,15 @@ func (m *MemoryIdx) EnrichWithMetaTags(id schema.MKey) idx.TagEnrichment {
 	return enrichmentJob
 }
 
-func (m *MemoryIdx) startTagEnrichment() {
+func (m *UnpartitionedMemoryIdx) startTagEnrichment() {
 	go m.enrichmentWorker()
 }
 
-func (m *MemoryIdx) stopTagEnrichment() {
+func (m *UnpartitionedMemoryIdx) stopTagEnrichment() {
 	close(m.tagEnrichmentQ)
 }
 
-func (m *MemoryIdx) enrichmentWorker() {
+func (m *UnpartitionedMemoryIdx) enrichmentWorker() {
 	var ok bool
 	var mtr metaTagRecords
 	for job := range m.tagEnrichmentQ {
