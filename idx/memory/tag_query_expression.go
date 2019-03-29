@@ -49,6 +49,7 @@ type expression interface {
 	hasRe() bool
 	matchesTag() bool
 	isPositiveOperator() bool
+	isTagQueryOperator() bool
 	stringIntoBuilder(builder *strings.Builder)
 }
 
@@ -213,6 +214,11 @@ func (e *expressionCommon) isPositiveOperator() bool {
 			return true
 		}
 	}
+	return false
+}
+
+// by default assume false, unless a concrete type overrides this method
+func (e *expressionCommon) isTagQueryOperator() bool {
 	return false
 }
 
